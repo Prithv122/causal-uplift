@@ -30,3 +30,10 @@ jobs:
 
       - name: Test
         run: uv run pytest --cov=src --cov-report=term-missing
+
+      - name: Smoke grid and report
+        run: |
+          uv run causal-uplift simulate --n 2000 --seed 1
+          uv run causal-uplift run-grid --smoke --out smoke-results --workers 2
+          uv run causal-uplift report --results smoke-results
+          uv run causal-uplift did --units 500 --reps 20
