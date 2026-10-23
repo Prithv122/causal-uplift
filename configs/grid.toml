@@ -4,6 +4,10 @@ reps = 200
 base = "lgbm"
 cost = 0.02
 base_seed = 20260830
+# Core arms only (amendment A1): the causal forest gets its own smaller reference run.
+estimators = [
+    "naive", "response", "s_learner", "t_learner", "x_learner", "dr_learner", "ipw", "ipw_logit",
+]
 
 # Observed confounding only (hidden = 0).
 [[cells]]

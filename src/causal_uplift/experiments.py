@@ -62,8 +62,8 @@ COLUMNS = (
     "fit_seconds",
 )
 
-# The ipw "score" is a constant ATE, so it has no individual-level estimate to score.
-_NO_INDIVIDUAL_METRICS = frozenset({"ipw"})
+# The ipw arms' "score" is a constant ATE, so it has no individual-level estimate to score.
+_NO_INDIVIDUAL_METRICS = frozenset({"ipw", "ipw_logit"})
 _POLICY_FRACTIONS = {"policy_top10": 0.10, "policy_top20": 0.20, "policy_top30": 0.30}
 _NAN = float("nan")
 
@@ -131,7 +131,7 @@ SMOKE_CONFIG = GridConfig(
     ),
     reps=3,
     base="logistic",
-    estimators=tuple(ESTIMATORS),  # the core seven; the optional forest is too slow for a smoke run
+    estimators=tuple(ESTIMATORS),  # the core arms; the optional forest is too slow for a smoke run
 )
 
 

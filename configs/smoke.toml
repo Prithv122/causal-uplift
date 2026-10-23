@@ -3,7 +3,7 @@ reps = 3
 base = "logistic"
 cost = 0.02
 base_seed = 20260830
-estimators = ["naive", "response", "s_learner", "t_learner", "x_learner", "dr_learner", "ipw"]
+estimators = ["naive", "response", "s_learner", "t_learner", "x_learner", "dr_learner", "ipw", "ipw_logit"]
 
 [[cells]]
 gamma = 0.0

@@ -105,3 +105,16 @@ class IPW:
 
     def ate(self) -> AteResult:
         return ensure_fitted(self._ate, self.name)
+
+
+class IPWLogit(IPW):
+    """IPW with a logistic-regression propensity, whatever base learner the grid uses.
+
+    An exploratory arm (pre-registration amendment A1): it isolates how much of IPW's behaviour
+    comes from the propensity model rather than from the weighting itself.
+    """
+
+    name = "ipw_logit"
+
+    def __init__(self, seed: int = 0, base: BaseKind = "lgbm") -> None:
+        super().__init__(seed, "logistic")

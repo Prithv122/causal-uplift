@@ -1,0 +1,20 @@
+# Causal-forest reference run (pre-registration amendment A1): no hypothesis reads it.
+# Needs the optional extra: uv sync --extra forest. X- and DR-learner run on the same draws
+# so the forest is compared on identical data.
+reps = 20
+base = "lgbm"
+cost = 0.02
+base_seed = 20260830
+estimators = ["causal_forest", "x_learner", "dr_learner"]
+
+[[cells]]
+gamma = 0.0
+hidden = 0.0
+n = 10000
+n_eval = 20000
+
+[[cells]]
+gamma = 1.0
+hidden = 0.0
+n = 10000
+n_eval = 20000

@@ -5,7 +5,7 @@ from __future__ import annotations
 from collections.abc import Callable
 
 from .base import AteResult, BaseKind, Estimator
-from .dr import IPW, DRLearner
+from .dr import IPW, DRLearner, IPWLogit
 from .metalearners import SLearner, TLearner, XLearner
 from .naive import Naive
 from .response import ResponseModel
@@ -19,6 +19,7 @@ ESTIMATORS: dict[str, Callable[[int, BaseKind], Estimator]] = {
     "x_learner": XLearner,
     "dr_learner": DRLearner,
     "ipw": IPW,
+    "ipw_logit": IPWLogit,
 }
 
 
@@ -40,6 +41,7 @@ __all__ = [
     "AteResult",
     "DRLearner",
     "Estimator",
+    "IPWLogit",
     "Naive",
     "ResponseModel",
     "SLearner",

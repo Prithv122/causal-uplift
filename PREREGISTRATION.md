@@ -84,3 +84,20 @@ and requires both estimators to fail in all of them. No threshold, cell or estim
 1/14 of the per-replication spread, so "|bias| <= 1 × MC SE" would fail an unbiased estimator about
 a third of the time by chance and any small finite-sample bias always. MC SEs are still reported
 next to every mean.
+
+**A1 — 2026-10-23, before the full grid.** An independent code review ran a small pilot
+(R = 40, n = 10,000, LightGBM base, outside the committed results). It found no formula error,
+but IPW with a LightGBM propensity over-corrected at gamma 1.0 and 2.0 (mean bias -0.015 and
+-0.023 against own SEs of 0.012 and 0.020, coverage 0.83 and 0.80), while IPW with a logistic
+or the true propensity did not. Because that pilot saw cells H2 judges, **nothing about H2
+changes**: `ipw` keeps the LightGBM propensity and is judged exactly as registered. Two
+additions, both outside every hypothesis:
+1. An exploratory arm `ipw_logit` (the same Hajek IPW with a logistic-regression propensity) runs
+   in every cell. It is reported next to `ipw` and labelled exploratory; no verdict reads it.
+2. The main grid runs from the default install, without the optional EconML extra, so
+   `causal_forest` is not in it (one forest fit at n = 10,000 would roughly double the grid's
+   run time). The causal forest gets a separate, smaller reference run (cells gamma 0 and 1.0,
+   hidden 0, R = 20), reported apart from the grid, with no hypothesis.
+
+The review also noted that IPW's SE treats the propensity as known, which makes it conservative
+(wider). That is left as implemented and stated in the README.
