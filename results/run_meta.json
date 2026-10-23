@@ -1,0 +1,115 @@
+{
+  "config": {
+    "cells": [
+      {
+        "gamma": 0.0,
+        "hidden": 0.0,
+        "n": 10000,
+        "n_eval": 20000,
+        "effect": 1.0,
+        "noise": 0.0
+      },
+      {
+        "gamma": 0.1,
+        "hidden": 0.0,
+        "n": 10000,
+        "n_eval": 20000,
+        "effect": 1.0,
+        "noise": 0.0
+      },
+      {
+        "gamma": 0.25,
+        "hidden": 0.0,
+        "n": 10000,
+        "n_eval": 20000,
+        "effect": 1.0,
+        "noise": 0.0
+      },
+      {
+        "gamma": 0.5,
+        "hidden": 0.0,
+        "n": 10000,
+        "n_eval": 20000,
+        "effect": 1.0,
+        "noise": 0.0
+      },
+      {
+        "gamma": 1.0,
+        "hidden": 0.0,
+        "n": 10000,
+        "n_eval": 20000,
+        "effect": 1.0,
+        "noise": 0.0
+      },
+      {
+        "gamma": 2.0,
+        "hidden": 0.0,
+        "n": 10000,
+        "n_eval": 20000,
+        "effect": 1.0,
+        "noise": 0.0
+      },
+      {
+        "gamma": 0.5,
+        "hidden": 0.5,
+        "n": 10000,
+        "n_eval": 20000,
+        "effect": 1.0,
+        "noise": 0.0
+      },
+      {
+        "gamma": 0.5,
+        "hidden": 1.0,
+        "n": 10000,
+        "n_eval": 20000,
+        "effect": 1.0,
+        "noise": 0.0
+      },
+      {
+        "gamma": 1.0,
+        "hidden": 0.5,
+        "n": 10000,
+        "n_eval": 20000,
+        "effect": 1.0,
+        "noise": 0.0
+      },
+      {
+        "gamma": 1.0,
+        "hidden": 1.0,
+        "n": 10000,
+        "n_eval": 20000,
+        "effect": 1.0,
+        "noise": 0.0
+      }
+    ],
+    "reps": 200,
+    "base": "lgbm",
+    "cost": 0.02,
+    "estimators": [
+      "naive",
+      "response",
+      "s_learner",
+      "t_learner",
+      "x_learner",
+      "dr_learner",
+      "ipw",
+      "ipw_logit"
+    ],
+    "base_seed": 20260830
+  },
+  "workers": 10,
+  "started": "2026-10-23T11:56:17.988659+00:00",
+  "finished": "2026-10-23T13:30:53.367360+00:00",
+  "cells_skipped_as_already_done": [],
+  "python": "3.12.13",
+  "platform": "Windows-11-10.0.26200-SP0",
+  "packages": {
+    "numpy": "2.5.4",
+    "pandas": "3.1.0",
+    "scikit-learn": "1.9.1",
+    "lightgbm": "4.7.0",
+    "scipy": "1.18.1"
+  },
+  "git_commit": "50db6ba884fa82b6b25b2a29a741d01a947e5ad8",
+  "git_tree_clean": false
+}
