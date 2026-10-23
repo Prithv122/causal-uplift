@@ -156,3 +156,137 @@ def test_to_frame_columns_and_content():
 def test_invalid_arguments_raise(kwargs, match):
     with pytest.raises(ValueError, match=match):
         simulate(seed=0, **kwargs)
+
+
+# --- Formula pins: the DESIGN.md formulas written out again, independently of dgp.py ---------
+
+LIFT = {"persuadable": 1.5, "sure_thing": 0.3, "lost_cause": 0.0, "sleeping_dog": -1.0}
+
+
+def _logit(p: np.ndarray) -> np.ndarray:
+    return np.log(p / (1.0 - p))
+
+
+def _reference(n: int, seed: int, *, gamma=0.0, hidden=0.0, effect=1.0, noise=0.0) -> dict:
+    """Redraw a sample from the documented draw order and formulas, with its own code.
+
+    Order (DESIGN.md): x0..x5 standard normal, x6 Bernoulli(0.5), x7 Bernoulli(0.3), then u,
+    eps, then the treatment uniforms, then the outcome uniforms.
+    """
+    rng = np.random.default_rng(seed)
+    cols = [rng.standard_normal(n) for _ in range(6)]
+    cols.append(rng.binomial(1, 0.5, n).astype(float))
+    cols.append(rng.binomial(1, 0.3, n).astype(float))
+    X = np.column_stack(cols)
+    u = rng.standard_normal(n)
+    eps = noise * rng.standard_normal(n)
+    x0, x1, x3, x7 = X[:, 0], X[:, 1], X[:, 3], X[:, 7]
+
+    persuadable = (x1 > 0) & (x0 < 0.5)
+    sure_thing = (x1 > 0) & (x0 >= 0.5)
+    lost_cause = (x1 <= 0) & (x7 == 0)
+    sleeping_dog = (x1 <= 0) & (x7 == 1)
+    segment = (
+        0 * persuadable + 1 * sure_thing + 2 * lost_cause + 3 * sleeping_dog
+    )  # codes in DESIGN order
+    s = (
+        LIFT["persuadable"] * persuadable
+        + LIFT["sure_thing"] * sure_thing
+        + LIFT["lost_cause"] * lost_cause
+        + LIFT["sleeping_dog"] * sleeping_dog
+    )
+    smooth = 0.3 * x3 * (persuadable | sure_thing)
+    b = -1.5 + 1.2 * x0 + 0.4 * X[:, 2] - 0.3 * X[:, 4] + 0.3 * X[:, 6] + 1.2 * hidden * u + eps
+    p0 = expit(b)
+    p1 = expit(b + effect * (s + smooth))
+    e = expit(gamma * (x0 + hidden * u))
+    t = (rng.random(n) < e).astype(int)
+    y = (rng.random(n) < np.where(t == 1, p1, p0)).astype(int)
+    return {
+        "X": X, "u": u, "eps": eps, "segment": segment, "p0": p0, "p1": p1, "e": e, "t": t, "y": y
+    }  # fmt: skip
+
+
+@pytest.mark.parametrize(
+    "knobs",
+    [
+        {},
+        {"gamma": 1.2, "hidden": 0.8, "effect": 1.3, "noise": 0.7},
+        {"gamma": 0.4, "hidden": 1.5, "effect": 0.6, "noise": 0.25},
+    ],
+)
+def test_every_array_matches_an_independent_redraw_of_the_documented_formulas(knobs):
+    n, seed = 4_000, 31
+    sim = simulate(n, seed, **knobs)
+    ref = _reference(n, seed, **knobs)
+    np.testing.assert_array_equal(sim.X, ref["X"])
+    np.testing.assert_array_equal(sim.u, ref["u"])  # u is drawn before eps
+    np.testing.assert_array_equal(sim.segment, ref["segment"])
+    np.testing.assert_allclose(sim.p0, ref["p0"], rtol=1e-12, atol=0)
+    np.testing.assert_allclose(sim.p1, ref["p1"], rtol=1e-12, atol=0)
+    np.testing.assert_allclose(sim.tau, ref["p1"] - ref["p0"], rtol=1e-10, atol=1e-15)
+    np.testing.assert_allclose(sim.propensity, ref["e"], rtol=1e-12, atol=0)
+    np.testing.assert_array_equal(sim.t, ref["t"])  # t uniforms follow u and eps
+    np.testing.assert_array_equal(sim.y, ref["y"])
+
+
+def test_draw_order_puts_u_before_eps():
+    # With noise > 0 and hidden > 0 both consume a standard-normal stream; swapping them would
+    # make the hidden confounder equal to the noise draw and vice versa.
+    n, seed = 3_000, 32
+    sim = simulate(n, seed, hidden=1.0, noise=1.0)
+    rng = np.random.default_rng(seed)
+    for _ in range(6):
+        rng.standard_normal(n)
+    rng.binomial(1, 0.5, n)
+    rng.binomial(1, 0.3, n)
+    first, second = rng.standard_normal(n), rng.standard_normal(n)
+    np.testing.assert_array_equal(sim.u, first)
+    shock = _logit(sim.p0) - (_baseline_logit(sim) + 1.2 * sim.u)
+    np.testing.assert_allclose(shock, second, atol=1e-9)
+
+
+@pytest.mark.parametrize("effect", [1.0, 1.5])
+def test_logit_lift_is_the_documented_constant_per_segment_plus_the_x3_term(effect):
+    sim = simulate(20_000, 33, effect=effect)
+    lift = (_logit(sim.p1) - _logit(sim.p0)) / effect
+    x3 = sim.X[:, 3]
+    for code, name in enumerate(SEGMENT_NAMES):
+        seg = sim.segment == code
+        assert seg.sum() > 1_000
+        if name in ("persuadable", "sure_thing"):
+            smooth = (lift[seg] - LIFT[name]) / x3[seg]
+            np.testing.assert_allclose(smooth, 0.3, atol=1e-8)
+        else:
+            np.testing.assert_allclose(lift[seg], LIFT[name], atol=1e-9)
+
+
+def test_segment_shares_follow_the_covariate_distributions():
+    n = 200_000
+    sim = simulate(n, 34)
+    # P(x1 > 0) = 1/2, P(x0 < 0.5) = Phi(0.5), P(x7 = 1) = 0.3
+    phi = 0.6914624612740131
+    expected = np.array([0.5 * phi, 0.5 * (1 - phi), 0.5 * 0.7, 0.5 * 0.3])
+    observed = np.bincount(sim.segment, minlength=4) / n
+    se = np.sqrt(expected * (1 - expected) / n)
+    assert np.all(np.abs(observed - expected) < 5 * se)
+
+
+def test_segment_mean_tau_and_baseline_match_an_independent_redraw():
+    # Two independent large samples from the same documented process must agree per segment,
+    # within sampling error, on the mean effect and the mean baseline conversion.
+    n = 200_000
+    sim = simulate(n, 35, hidden=0.5, noise=0.3)
+    ref = _reference(n, 36, hidden=0.5, noise=0.3)
+    ref_tau = ref["p1"] - ref["p0"]
+    for code in range(4):
+        a, b = sim.segment == code, ref["segment"] == code
+        for ours, theirs in ((sim.tau[a], ref_tau[b]), (sim.p0[a], ref["p0"][b])):
+            se = np.sqrt(ours.var() / ours.size + theirs.var() / theirs.size)
+            assert abs(ours.mean() - theirs.mean()) <= 5 * se + 1e-12  # lost_cause tau is exactly 0
+    # The documented signs and sizes, so a rescaled lift cannot hide behind both draws agreeing.
+    mean_tau = [sim.tau[sim.segment == k].mean() for k in range(4)]
+    assert 0.2 < mean_tau[0] < 0.3
+    assert 0.03 < mean_tau[1] < 0.1
+    assert mean_tau[2] == 0.0
+    assert -0.16 < mean_tau[3] < -0.09
