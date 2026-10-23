@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 from pathlib import Path
 
 import numpy as np
@@ -148,3 +149,27 @@ def test_run_grid_writes_resumes_and_matches_across_workers(
         serial.drop(columns="fit_seconds").reset_index(drop=True),
         parallel.drop(columns="fit_seconds").reset_index(drop=True),
     )
+
+
+def test_run_meta_records_the_source_state_from_before_the_run(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    calls: list[tuple[str, ...]] = []
+
+    def fake_git(*args: str) -> str:
+        calls.append(args)
+        return "" if args[0] == "status" else "abc123"
+
+    monkeypatch.setattr(experiments, "_git", fake_git)
+    config = tiny_config(("naive",))
+    real_task = experiments._run_task
+
+    def task_after_git(task):
+        assert calls, "source state must be read before any replication runs"
+        return real_task(task)
+
+    monkeypatch.setattr(experiments, "_run_task", task_after_git)
+    run_grid(config, tmp_path, workers=1, progress=False)
+    meta = json.loads((tmp_path / "run_meta.json").read_text())
+    assert meta["git_commit"] == "abc123" and meta["git_tracked_changes"] is False
+    assert ("status", "--porcelain", "--untracked-files=no") in calls

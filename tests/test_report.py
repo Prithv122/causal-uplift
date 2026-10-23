@@ -203,9 +203,10 @@ def test_breaking_points() -> None:
 
 def test_report_text_and_write(tmp_path: Path) -> None:
     make_results().to_csv(tmp_path / "grid.csv", index=False)
-    (tmp_path / "run_meta.json").write_text('{"git_commit": "abc123", "git_tree_clean": true}')
+    meta = '{"git_commit": "abc123", "git_tracked_changes": false}'
+    (tmp_path / "run_meta.json").write_text(meta)
     text = build_report(tmp_path / "grid.csv")
-    assert "commit: abc123" in text
+    assert "commit at run start: abc123 (clean)" in text
     assert "### H1 - " in text and "### H2 - " in text and "### H3 - " in text
     assert "Verdict: **supported**" in text
     path = write_report(tmp_path)

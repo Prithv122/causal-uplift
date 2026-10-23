@@ -465,9 +465,9 @@ def _header(df: pd.DataFrame, meta: dict | None) -> str:
     ]
     if meta:
         commit = meta.get("git_commit") or "unknown"
-        clean = meta.get("git_tree_clean")
-        state = "" if clean is None else (" (clean tree)" if clean else " (uncommitted changes)")
-        lines.append(f"- commit: {commit}{state}")
+        changed = meta.get("git_tracked_changes")
+        state = "" if changed is None else (" (uncommitted changes)" if changed else " (clean)")
+        lines.append(f"- commit at run start: {commit}{state}")
         lines.append(f"- run started: {meta.get('started', 'unknown')}")
     return "\n".join(lines) + "\n"
 

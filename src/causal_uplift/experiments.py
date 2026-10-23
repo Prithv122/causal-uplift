@@ -257,6 +257,7 @@ def run_grid(
     written to ``out_dir/grid.csv``, and records ``out_dir/run_meta.json``.
     """
     out = Path(out_dir)
+    source = _source_state()  # read before any result is written, so it names the code that ran
     grid_dir = out / "grid"
     grid_dir.mkdir(parents=True, exist_ok=True)
     started = datetime.now(UTC)
@@ -301,7 +302,7 @@ def run_grid(
     frames = [pd.read_csv(p) for p in paths.values() if p.exists()]
     combined = pd.concat(frames, ignore_index=True)
     combined.to_csv(out / "grid.csv", index=False)
-    _write_meta(out / "run_meta.json", config, workers, started, skipped)
+    _write_meta(out / "run_meta.json", config, workers, started, skipped, source)
     return combined
 
 
@@ -320,11 +321,24 @@ def _git(*args: str) -> str | None:
     return done.stdout.strip()
 
 
+def _source_state() -> dict:
+    """The commit and whether any tracked file differs from it (untracked outputs don't count)."""
+    status = _git("status", "--porcelain", "--untracked-files=no")
+    return {
+        "git_commit": _git("rev-parse", "HEAD"),
+        "git_tracked_changes": None if status is None else status != "",
+    }
+
+
 def _write_meta(
-    path: Path, config: GridConfig, workers: int, started: datetime, skipped: list[str]
+    path: Path,
+    config: GridConfig,
+    workers: int,
+    started: datetime,
+    skipped: list[str],
+    source: dict,
 ) -> None:
-    """Record what was run, with what, and from which commit."""
-    status = _git("status", "--porcelain")
+    """Record what was run, with what, and from which commit (as it was when the run started)."""
     meta = {
         "config": asdict(config),
         "workers": workers,
@@ -337,7 +351,6 @@ def _write_meta(
             name: metadata.version(name)
             for name in ("numpy", "pandas", "scikit-learn", "lightgbm", "scipy")
         },
-        "git_commit": _git("rev-parse", "HEAD"),
-        "git_tree_clean": None if status is None else status == "",
+        **source,
     }
     path.write_text(json.dumps(meta, indent=2) + "\n")
