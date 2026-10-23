@@ -64,31 +64,34 @@ flowchart LR
 ## 5. Results
 
 All numbers below are from `results/REPORT.md`: the pre-registered grid, **synthetic data**, 10
-settings × 200 replications, each replication fitted on 10,000 simulated users and scored on
-20,000 fresh ones, LightGBM base learners. "Own SE" is the standard error the estimator reports
-for itself, averaged over replications. Provenance and a reproduction check are in
+settings × 200 replications, each replication fitted on 10,000 simulated users, LightGBM base
+learners. Ranking and policy metrics are scored on 20,000 fresh users; ATE bias and coverage are
+measured against the true average effect of the 10,000 training users, the sample every ATE
+estimator averages over. "Own SE" is the standard error the estimator reports for itself,
+averaged over replications. Provenance and a reproduction check are in
 `results/PROVENANCE.md`.
 
 **Verdicts (mechanical, rules fixed in `PREREGISTRATION.md` before the run):**
 
 | | Hypothesis | Verdict | Deciding numbers |
 |---|---|---|---|
-| H1 | X- and DR-learner rank users better than the response model when assignment is random | **supported** | Qini vs truth: X 0.877, DR 0.800, response 0.480; paired gaps +0.397 and +0.320, MC SE 0.0015 and 0.0016 |
+| H1 | X- and DR-learner rank users better than the response model when assignment is random | **supported** | Qini vs truth: X 0.877, DR 0.800, response 0.480; paired gaps +0.397 and +0.319, MC SE 0.0015 and 0.0016 |
 | H2 | From gamma 0.5 the naive estimate is biased while IPW and AIPW stay usable | **not supported** | IPW fails at gamma 1.0: \|bias\| 0.0123 > own SE 0.0117, coverage 0.86. Every other condition holds |
-| H3 | With hidden confounding, IPW and AIPW stay biased (expected failure) | **not supported** | 7 of 8 conditions hold; IPW at (gamma 0.5, hidden 0.5): \|bias\| 0.0168 < 2 × own SE 0.0199 |
+| H3 | With hidden confounding, IPW and AIPW stay biased (expected failure) | **not supported** | 7 of 8 conditions hold; IPW at (gamma 0.5, hidden 0.5): \|bias\| 0.0168 < threshold 2 × own SE = 0.0199 |
 
 **ATE bias under observed confounding (hidden = 0):**
 
 | gamma | naive | IPW (LightGBM propensity) | IPW (logistic propensity)* | AIPW (DR) | coverage, IPW / AIPW |
 |---|---|---|---|---|---|
-| 0 | -0.0007 | -0.0006 | -0.0006 | -0.0009 | 0.98 / 0.97 |
-| 0.5 | +0.0793 | -0.0074 | -0.0009 | -0.0011 | 0.92 / 0.93 |
-| 1.0 | +0.1409 | -0.0123 | -0.0001 | -0.0007 | 0.86 / 0.98 |
-| 2.0 | +0.2067 | -0.0176 | +0.0048 | -0.0006 | 0.92 / 0.95 |
+| 0 | -0.0007 | -0.0006 | -0.0006 | -0.0009 | 0.980 / 0.970 |
+| 0.5 | +0.0793 | -0.0074 | -0.0009 | -0.0011 | 0.915 / 0.930 |
+| 1.0 | +0.1409 | -0.0123 | -0.0001 | -0.0007 | 0.860 / 0.980 |
+| 2.0 | +0.2067 | -0.0176 | +0.0048 | -0.0006 | 0.920 / 0.950 |
 
 The true ATE is about 0.079 (7.9 percentage points). \*Exploratory arm added before the run
 (amendment A1, after a review pilot); no verdict reads it. MC SE of each mean bias is 0.0006 to
-0.0013.
+0.0013. IPW's SE treats the estimated propensity as known, so its intervals are conservative
+(too wide); that makes its coverage easier to reach, not harder.
 
 **Ranking (Qini against the true effect, 1 = oracle, 0 = random) and policy value:**
 
@@ -110,25 +113,38 @@ model 0.0298, random 0.0117.
   quality; its top 20% buys roughly half the conversions an S-learner's does.
 - **The best ATE estimator was not the best ranker.** AIPW stayed within 0.0011 of the truth with
   0.925–0.98 coverage at every observed-confounding level, but the DR-learner's ranking fell from
-  0.800 to 0.553 as confounding rose. The S-learner ranked best in every cell (0.914–0.941 with no hidden confounding).
-- **IPW broke because of its propensity model, not the weighting.** With a LightGBM propensity its
-  bias grew from -0.0074 to -0.0176. It passed the "usable" rule at gamma 2 only because its own
-  SE widened. The same weighting with a logistic propensity stayed within 0.005 at every level.
-- **H3 failed because two errors partly cancelled.** At (0.5, 0.5), AIPW and logistic IPW are
-  biased by +0.0226 (coverage 0.31–0.32). LightGBM IPW shows +0.0168, which is about +0.0226 plus
-  the -0.0063 gap between it and AIPW at gamma 0.5 with no hidden confounding. Its smaller bias came
-  from two errors offsetting each other, not from an adjustment working. With stronger hidden
+  0.800 to 0.553 as confounding rose. The S-learner ranked best in every cell (0.914–0.942 with no hidden
+  confounding).
+- **IPW with a LightGBM propensity drifted; with a logistic one it did not.** With LightGBM its
+  bias grew from -0.0074 to -0.0176, and it passed the "usable" rule at gamma 2 only because its
+  own SE widened. The same weighting with a logistic propensity stayed within 0.005 at every
+  hidden = 0 level. My reading is that the propensity model, not the weighting, is the cause, but
+  the comparison is flattering to the logistic arm: with no hidden confounding the true
+  propensity is `sigmoid(gamma * x0)`, exactly the logistic form. On real data neither model is
+  known to be right.
+- **Why H3 failed in one condition.** At (0.5, 0.5), AIPW and logistic IPW are biased by
+  +0.0226 (coverage 0.31–0.32). LightGBM IPW shows +0.0168, close to +0.0226 plus the -0.0063
+  gap between it and AIPW at gamma 0.5 with no hidden confounding (sum +0.0163). My reading,
+  which the grid did not test directly, is that two errors offset each other rather than an
+  adjustment working. With stronger hidden
   confounding every method was biased (+0.08 to +0.15 at hidden 1.0) and the CATE learners'
   rankings degraded too.
 - **Breaking points (smallest gamma at which the ATE stops being usable):** naive at 0.1 (bias
   +0.0169, coverage 0.55), T-learner's averaged effect at 2.0 (+0.0169), LightGBM IPW at 1.0.
   AIPW, logistic IPW, and the S- and X-learner averages stayed usable across the whole grid.
 
+**Causal-forest reference arm** (`results/forest/REPORT.md`; EconML `CausalForestDML`, 2 cells ×
+20 replications, no hypothesis): true-effect Qini 0.920 at gamma 0 and 0.901 at gamma 1.0, against
+0.879 / 0.861 for my X-learner and 0.803 / 0.741 for my DR-learner on the same draws; ATE bias
+-0.0010 and -0.0026 (MC SE 0.0015 and 0.0026). It agrees with the own implementations in
+direction and ranks second only to the S-learner from the main grid, at about 28 s per fit
+against 3–4 s for the X- and DR-learner.
+
 **Difference-in-differences** (`results/DID.md`; 2,000 units × 200 replications, true effect
 0.05): with parallel trends, DiD bias is +0.0002 (coverage 0.96). A trend gap of 0.01 / 0.03 /
-0.05 shows up as bias of +0.0104 / +0.0299 / +0.0500, so coverage falls to 0.62 / 0.02 / 0.00.
-The after-only comparison is biased by about 0.17 and the before-vs-after comparison by 0.10
-throughout.
+0.05 shows up as bias of +0.0104 / +0.0299 / +0.0500, so coverage falls to 0.615 / 0.015 /
+0.000. The after-only comparison is biased by 0.166 rising to 0.216 across those gaps, and the
+before-vs-after comparison by 0.101 rising to 0.150.
 
 ## 6. How to run
 
@@ -167,7 +183,8 @@ The full grid is `uv run causal-uplift run-grid --config configs/grid.toml --out
   available, and it is valid only on randomised traffic. The production version needs a small,
   permanently randomised holdout to score models on, which is a product decision as much as a
   technical one.
-- **Estimators.** The DR-learner's ranking degraded with extreme propensities. At scale I would
+- **Estimators.** The DR-learner's ranking degraded as confounding rose; my reading is that its
+  inverse-propensity terms get noisier as propensities become extreme. At scale I would
   trim or overlap-weight the population before fitting, and choose the propensity model by
   calibration and overlap diagnostics rather than by the outcome learner's settings.
 

@@ -38,7 +38,14 @@ What broke, what was tried, and why one option won. Newest at the bottom of each
   X-learner's propensity weight ≈ 0.5, correctly specified models hid weighting errors, SE tests
   were one-sided). New tests rebuild each estimator independently, check clipping with a stub
   model and check SE calibration over 50 replications; all 25 mutations tried (the 19 plus 6
-  more) now fail at least one test.
+  more) now fail at least one test. They were applied by hand, one at a time, to a copy of the
+  repo: X-learner blend swapped or g fixed at 0.5; D1 built from mu1; tau1 fitted on the wrong
+  arm; DR control term divided by e; DR nuisances fitted in-sample; DR final stage fitted on
+  mu1 - mu0; DR SE without /sqrt(n) or with ddof = 0; DR phi using mu0 in the treated residual;
+  IPW influence function uncentred, SE x 3, Horvitz-Thompson instead of Hajek, no cross-fitting;
+  S-learner sign flipped; T-learner arms swapped; propensity clipping removed (DR, IPW, X);
+  simulator segment lifts changed, x3 term removed, u/eps draw order swapped, propensity
+  ignoring u, baseline x0 coefficient changed.
 
 ## Known limits
 

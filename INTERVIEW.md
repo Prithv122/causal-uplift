@@ -11,9 +11,9 @@ user's two conversion probabilities, with and without the offer, so the true ind
 exact. Four planted segments: persuadables, sure things, lost causes and sleeping dogs. Two knobs
 control how biased the targeting is: `gamma` (assignment depends on an observed variable that also
 drives conversion) and `hidden` (part of it moves into a variable no model sees). For each setting
-I simulate 10,000 training users, fit eight estimators, then score them on 20,000 fresh users
-against the true effect: ATE bias and interval coverage, PEHE, Qini against the truth, and the
-value of treating the top 20%. 200 replications per setting, seeded by (setting, replication), run
+I simulate 10,000 training users and fit eight estimators. ATE bias and interval coverage are
+measured against the training users' true average effect; PEHE, Qini against the truth and the
+value of treating the top 20% are scored on 20,000 fresh users. 200 replications per setting, seeded by (setting, replication), run
 in parallel, one CSV per setting so a run resumes. A report script turns the CSVs into tables and
 applies the pre-registered rules mechanically.
 
@@ -21,7 +21,7 @@ applies the pre-registered rules mechanically.
 
 _A:_ Because the question is about the methods, and I need to be able to defend every line. Each
 learner is under 60 lines on top of scikit-learn or LightGBM models. The tests rebuild each one
-independently and compare to 1e-10, and 25 deliberate formula mutations all fail a test. EconML
+independently and compare to 1e-10, and 25 hand-applied formula mutations (listed in `NOTES.md`) all fail a test. EconML
 is still there as a reference arm (its causal forest) behind an optional extra, because a
 reviewer will reasonably ask whether my implementation agrees with the standard library. It
 pins scikit-learn below 1.10, which is another reason not to make it a core dependency.
@@ -42,7 +42,7 @@ specified in `DESIGN.md` and tested formula by formula, so anyone can change the
 
 _A:_ Three hypotheses were registered before the full run, with exact cells and thresholds. H1,
 supported: at random assignment the X- and DR-learner rank users far better than the response
-model (true-effect Qini 0.877 and 0.800 vs 0.480; paired gaps +0.397 and +0.320, MC SE about
+model (true-effect Qini 0.877 and 0.800 vs 0.480; paired gaps +0.397 and +0.319, MC SE about
 0.0015). H2, not supported: the naive estimate is biased everywhere from gamma 0.5 (by 0.079 to
 0.207 on a true ATE of about 0.079), and AIPW stayed within 0.0011 with 0.93–0.98 coverage, but
 IPW with a LightGBM propensity failed at gamma 1 (bias 0.0123 against its own SE of 0.0117,
@@ -50,7 +50,9 @@ coverage 0.86). H3, not supported in one of eight conditions, for an interesting
 IPW's over-correction partly cancelled the hidden-confounding bias. I report the failures as
 failures. A review pilot had shown the IPW problem before the run, and I deliberately did not
 change H2; I added an exploratory logistic-propensity IPW arm instead, which stayed within 0.005
-everywhere. That isolates the cause: the propensity model, not the weighting.
+at every level without hidden confounding. That points at the propensity model rather than the
+weighting, with a caveat I'd raise myself: here the true propensity has exactly the logistic
+form, so the comparison flatters the logistic arm.
 
 ### Q5. Why did the DR-learner have the best ATE but a worse ranking than the S-learner?
 

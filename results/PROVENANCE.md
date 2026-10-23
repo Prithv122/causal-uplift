@@ -1,6 +1,9 @@
 # Provenance of the full grid
 
-- **Code that ran:** commit `f0bb079` (pre-registration A1 committed), clean working tree, started
+- **Code that ran:** commit `f0bb079` (pre-registration A1 committed). The working tree was clean
+  when the run started (`git status` printed nothing right after that commit, in the session
+  that launched it); no file records this, because of the defect below, and the reproduction
+  check is the evidence that the stored rows came from this commit. Started
   2026-10-23 11:56 UTC, finished 13:30 UTC, 10 workers, Windows 11, Python 3.12.13, numpy 2.5.4,
   pandas 3.1.0, scikit-learn 1.9.1, LightGBM 4.7.0, SciPy 1.18.1.
 - **Known defect in `run_meta.json`:** the runner at `f0bb079` read the git state when the run
