@@ -39,16 +39,20 @@ paired difference `qini_true(learner) − qini_true(response)` across replicatio
 2 × its MC SE. Reported per learner: supported / not supported.
 
 **H2 — observed confounding breaks the naive estimate but not the adjusted ones.**
-`gamma* = 0.5`. In every `hidden = 0` cell with `gamma >= gamma*`:
+`gamma* = 0.5`. For **every** `hidden = 0` cell with `gamma >= gamma*` — that is, each of the three
+cells `gamma = 0.5`, `gamma = 1.0` and `gamma = 2.0` — all of the following must hold:
 - naive is **biased**: |mean bias| > 2 × naive's own SE;
-- `ipw` and `dr_learner` (AIPW) are **usable**: |mean bias| <= 1 × their own SE, and 95% interval
-  coverage >= 0.90.
-H2 is supported if all three conditions hold in all three cells (gamma 0.5, 1.0, 2.0). Each
-condition is reported per cell regardless.
+- `ipw` is **usable**: |mean bias| <= 1 × its own SE, and 95% interval coverage >= 0.90;
+- `dr_learner` (AIPW) is **usable**: |mean bias| <= 1 × its own SE, and 95% interval coverage
+  >= 0.90.
+H2 is supported only if every condition holds in every one of the three cells; a failure in any
+single cell means not supported. Each condition is reported per cell regardless.
 
 **H3 — an expected failure: no observed-covariate method removes hidden confounding.**
-In every `hidden > 0` cell, `ipw` and `dr_learner` are **biased**: |mean bias| > 2 × own SE.
-Reported as "supported" when they fail, because the failure is the prediction.
+In **each** of the four hidden-confounding cells — `(gamma, hidden)` = (0.5, 0.5), (0.5, 1.0),
+(1.0, 0.5) and (1.0, 1.0) — both `ipw` and `dr_learner` are **biased**: |mean bias| > 2 × own SE.
+H3 is supported only if both estimators are biased in all four cells. Reported as "supported" when
+they fail, because the failure is the prediction; each cell is reported regardless.
 
 ## Breaking points (descriptive, no hypothesis)
 
@@ -73,4 +77,10 @@ hypothesis. The DiD module has its own unit-tested expectations and no hypothesi
 
 ## Amendments
 
-_None yet._
+**A0 — 2026-10-23, before any run (smoke or full).** Wording only, on the owner's review: H2 now
+names its three cells and says every condition must hold in every cell; H3 names its four cells
+and requires both estimators to fail in all of them. No threshold, cell or estimator changed. The
+"own SE" yardstick is kept deliberately: with R = 200 the Monte-Carlo SE of the mean bias is about
+1/14 of the per-replication spread, so "|bias| <= 1 × MC SE" would fail an unbiased estimator about
+a third of the time by chance and any small finite-sample bias always. MC SEs are still reported
+next to every mean.
