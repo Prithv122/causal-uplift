@@ -63,8 +63,72 @@ flowchart LR
 
 ## 5. Results
 
-_Not run yet. The grid and the hypotheses are fixed in `PREREGISTRATION.md` before the run; this
-section is written from `results/REPORT.md` afterwards._
+All numbers below are from `results/REPORT.md`: the pre-registered grid, **synthetic data**, 10
+settings × 200 replications, each replication fitted on 10,000 simulated users and scored on
+20,000 fresh ones, LightGBM base learners. "Own SE" is the standard error the estimator reports
+for itself, averaged over replications. Provenance and a reproduction check are in
+`results/PROVENANCE.md`.
+
+**Verdicts (mechanical, rules fixed in `PREREGISTRATION.md` before the run):**
+
+| | Hypothesis | Verdict | Deciding numbers |
+|---|---|---|---|
+| H1 | X- and DR-learner rank users better than the response model when assignment is random | **supported** | Qini vs truth: X 0.877, DR 0.800, response 0.480; paired gaps +0.397 and +0.320, MC SE 0.0015 and 0.0016 |
+| H2 | From gamma 0.5 the naive estimate is biased while IPW and AIPW stay usable | **not supported** | IPW fails at gamma 1.0: \|bias\| 0.0123 > own SE 0.0117, coverage 0.86. Every other condition holds |
+| H3 | With hidden confounding, IPW and AIPW stay biased (expected failure) | **not supported** | 7 of 8 conditions hold; IPW at (gamma 0.5, hidden 0.5): \|bias\| 0.0168 < 2 × own SE 0.0199 |
+
+**ATE bias under observed confounding (hidden = 0):**
+
+| gamma | naive | IPW (LightGBM propensity) | IPW (logistic propensity)* | AIPW (DR) | coverage, IPW / AIPW |
+|---|---|---|---|---|---|
+| 0 | -0.0007 | -0.0006 | -0.0006 | -0.0009 | 0.98 / 0.97 |
+| 0.5 | +0.0793 | -0.0074 | -0.0009 | -0.0011 | 0.92 / 0.93 |
+| 1.0 | +0.1409 | -0.0123 | -0.0001 | -0.0007 | 0.86 / 0.98 |
+| 2.0 | +0.2067 | -0.0176 | +0.0048 | -0.0006 | 0.92 / 0.95 |
+
+The true ATE is about 0.079 (7.9 percentage points). \*Exploratory arm added before the run
+(amendment A1, after a review pilot); no verdict reads it. MC SE of each mean bias is 0.0006 to
+0.0013.
+
+**Ranking (Qini against the true effect, 1 = oracle, 0 = random) and policy value:**
+
+| gamma, hidden | response | S-learner | T-learner | X-learner | DR-learner |
+|---|---|---|---|---|---|
+| 0, 0 | 0.480 | 0.941 | 0.822 | 0.877 | 0.800 |
+| 1.0, 0 | 0.481 | 0.933 | 0.806 | 0.859 | 0.732 |
+| 2.0, 0 | 0.486 | 0.914 | 0.769 | 0.837 | 0.553 |
+| 1.0, 1.0 | 0.490 | 0.817 | 0.723 | 0.784 | 0.671 |
+
+Treating the top 20% at gamma 0 (incremental conversions per user, net of a cost of 0.02 per
+treated user): oracle 0.0623, S-learner 0.0585, X-learner 0.0556, DR-learner 0.0514, response
+model 0.0298, random 0.0117.
+
+**What the numbers say:**
+
+- **Uplift modelling paid.** Every learner ranked users far better than "treat who is most likely
+  to convert", at every setting. The response model reached about half the oracle's ranking
+  quality; its top 20% buys roughly half the conversions an S-learner's does.
+- **The best ATE estimator was not the best ranker.** AIPW stayed within 0.0011 of the truth with
+  0.925–0.98 coverage at every observed-confounding level, but the DR-learner's ranking fell from
+  0.800 to 0.553 as confounding rose. The S-learner ranked best in every cell (0.914–0.941 with no hidden confounding).
+- **IPW broke because of its propensity model, not the weighting.** With a LightGBM propensity its
+  bias grew from -0.0074 to -0.0176. It passed the "usable" rule at gamma 2 only because its own
+  SE widened. The same weighting with a logistic propensity stayed within 0.005 at every level.
+- **H3 failed because two errors partly cancelled.** At (0.5, 0.5), AIPW and logistic IPW are
+  biased by +0.0226 (coverage 0.31–0.32). LightGBM IPW shows +0.0168, which is about +0.0226 plus
+  the -0.0063 gap between it and AIPW at gamma 0.5 with no hidden confounding. Its smaller bias came
+  from two errors offsetting each other, not from an adjustment working. With stronger hidden
+  confounding every method was biased (+0.08 to +0.15 at hidden 1.0) and the CATE learners'
+  rankings degraded too.
+- **Breaking points (smallest gamma at which the ATE stops being usable):** naive at 0.1 (bias
+  +0.0169, coverage 0.55), T-learner's averaged effect at 2.0 (+0.0169), LightGBM IPW at 1.0.
+  AIPW, logistic IPW, and the S- and X-learner averages stayed usable across the whole grid.
+
+**Difference-in-differences** (`results/DID.md`; 2,000 units × 200 replications, true effect
+0.05): with parallel trends, DiD bias is +0.0002 (coverage 0.96). A trend gap of 0.01 / 0.03 /
+0.05 shows up as bias of +0.0104 / +0.0299 / +0.0500, so coverage falls to 0.62 / 0.02 / 0.00.
+The after-only comparison is biased by about 0.17 and the before-vs-after comparison by 0.10
+throughout.
 
 ## 6. How to run
 
@@ -78,9 +142,34 @@ uv run causal-uplift run-grid --smoke --out results-smoke
 uv run causal-uplift report --results results-smoke
 ```
 
+Optional parts:
+
+```bash
+uv sync --extra forest                                      # EconML causal-forest reference arm
+uv run causal-uplift run-grid --config configs/forest.toml --out results/forest --workers 8
+uv run causal-uplift download criteo --dest data/raw        # ~297 MiB, sha256-checked, git-ignored
+uv run causal-uplift criteo-check --out results/criteo      # outcome-only Qini on 1M rows
+uv run causal-uplift did                                    # difference-in-differences sweep
+```
+
+The full grid is `uv run causal-uplift run-grid --config configs/grid.toml --out results
+--workers 10` (about 95 minutes on a 12-thread laptop); it resumes by skipping finished cells.
+
 ## 7. What I'd change at 100× scale
 
-_After the run._
+- **Compute.** The grid is 2,000 replications of about 20 single-threaded model fits each,
+  spread over processes on one machine. At 100× (more settings, larger n, the forest in every
+  cell) it belongs on a job queue (Ray or a batch cluster), one task per (cell, replication).
+  The seeding is already keyed by (cell, replication), so the results would not change.
+- **Storage.** 16,000 rows of CSV is fine; a million rows wants Parquet partitioned by cell, and
+  the report would read it with DuckDB rather than pandas.
+- **Real data.** On tens of millions of real users the outcome-only Qini becomes the only score
+  available, and it is valid only on randomised traffic. The production version needs a small,
+  permanently randomised holdout to score models on, which is a product decision as much as a
+  technical one.
+- **Estimators.** The DR-learner's ranking degraded with extreme propensities. At scale I would
+  trim or overlap-weight the population before fitting, and choose the propensity model by
+  calibration and overlap diagnostics rather than by the outcome learner's settings.
 
 ---
 
