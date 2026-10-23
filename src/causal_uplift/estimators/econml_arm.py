@@ -25,7 +25,7 @@ class CausalForest:
     """EconML `CausalForestDML`: orthogonalised outcome and treatment, then a causal forest.
 
     The outcome and treatment nuisance models are the project's base classifiers, cross-fitted
-    over two folds. The ATE and its interval come from EconML's forest-based inference.
+    over two folds. The ATE and its interval are EconML's doubly robust ATE inference.
     """
 
     name = "causal_forest"
@@ -53,11 +53,13 @@ class CausalForest:
             random_state=self.seed,
         )
         self._model.fit(y, t, X=X)
-        summary = self._model.ate_inference(X)
-        lo, hi = (float(v) for v in summary.conf_int_mean(alpha=0.05))
+        # The doubly robust ATE: its SE is the sampling error of the average, whereas
+        # `ate_inference(X)` aggregates per-user forest variances and is several times wider.
+        summary = self._model.ate__inference()
+        lo, hi = (float(np.squeeze(v)) for v in summary.conf_int(alpha=0.05))
         self._ate = AteResult(
-            estimate=float(summary.mean_point),
-            se=float(summary.stderr_mean),
+            estimate=float(np.squeeze(summary.point_estimate)),
+            se=float(np.squeeze(summary.stderr)),
             lo=lo,
             hi=hi,
         )

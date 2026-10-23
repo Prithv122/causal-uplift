@@ -18,6 +18,11 @@ dependencies = [
 [project.scripts]
 causal-uplift = "causal_uplift.cli:main"
 
+[project.optional-dependencies]
+forest = [
+    "econml==0.17.0",
+]
+
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
