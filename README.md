@@ -137,7 +137,7 @@ model 0.0298, random 0.0117.
 20 replications, no hypothesis): true-effect Qini 0.920 at gamma 0 and 0.901 at gamma 1.0, against
 0.879 / 0.861 for my X-learner and 0.803 / 0.741 for my DR-learner on the same draws; ATE bias
 -0.0010 and -0.0026 (MC SE 0.0015 and 0.0026). It agrees with the own implementations in
-direction and ranks second only to the S-learner from the main grid, at about 28 s per fit
+direction and sits below the main grid's S-learner (0.941 / 0.933, different draws), at about 28 s per fit
 against 3–4 s for the X- and DR-learner.
 
 **Difference-in-differences** (`results/DID.md`; 2,000 units × 200 replications, true effect
