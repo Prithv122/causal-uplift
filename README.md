@@ -140,6 +140,18 @@ model 0.0298, random 0.0117.
 direction and sits below the main grid's S-learner (0.941 / 0.933, different draws), at about 28 s per fit
 against 3–4 s for the X- and DR-learner.
 
+**Real-data sanity check, outcome only, no hypothesis** (`results/criteo/CRITEO.md`; Criteo
+Uplift, randomised, a seeded 1,000,000-row subsample, 5 seeded 50/50 splits, LightGBM). Every model
+beat random targeting on all 5 splits for both outcomes. But here **the response model ranked
+best**. Visit Qini was 0.00302 for the response model against 0.00260–0.00270 for the T-, X- and
+DR-learners; conversion Qini was 0.00049 against 0.00027–0.00036. The response model led in 29 of
+30 paired split comparisons. That is the opposite of the simulator's H1 ordering. My reading is
+that in this data the users most likely to visit are also the ones the ad moves most, so ranking
+by response already ranks by uplift. In the simulator the two are deliberately pulled apart (sure
+things and sleeping dogs). Which world a business is in is an empirical question, and this is why
+a randomised holdout to score models on matters more than the choice of learner. The test-half
+effect of treatment on visits was +0.0102 (SE 0.0008).
+
 **Difference-in-differences** (`results/DID.md`; 2,000 units × 200 replications, true effect
 0.05): with parallel trends, DiD bias is +0.0002 (coverage 0.96). A trend gap of 0.01 / 0.03 /
 0.05 shows up as bias of +0.0104 / +0.0299 / +0.0500, so coverage falls to 0.615 / 0.015 /

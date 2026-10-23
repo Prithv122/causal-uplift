@@ -35,7 +35,10 @@ here partly because the lift is a shift on the logit scale, which a tree model w
 feature captures easily.
 Second, IPW's standard error treats the estimated propensity as known, so its intervals are
 conservative. Third, the real-data check on Criteo can only use outcome-based Qini, because real
-data has no individual truth. The design choice I'd defend is that the simulator is in the repo,
+data has no individual truth, and there the plain response model ranked best (visit Qini 0.00302
+vs 0.00260–0.00270 for the uplift learners, ahead in 29 of 30 paired splits). So the
+simulator's H1 result is a statement about data where likely buyers and persuadable buyers
+differ, not a general law. The design choice I'd defend is that the simulator is in the repo,
 specified in `DESIGN.md` and tested formula by formula, so anyone can change the shape and re-run.
 
 ### Q4. How do you know it works? What did you measure, and against what baseline?
