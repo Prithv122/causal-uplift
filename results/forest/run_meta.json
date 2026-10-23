@@ -1,0 +1,46 @@
+{
+  "config": {
+    "cells": [
+      {
+        "gamma": 0.0,
+        "hidden": 0.0,
+        "n": 10000,
+        "n_eval": 20000,
+        "effect": 1.0,
+        "noise": 0.0
+      },
+      {
+        "gamma": 1.0,
+        "hidden": 0.0,
+        "n": 10000,
+        "n_eval": 20000,
+        "effect": 1.0,
+        "noise": 0.0
+      }
+    ],
+    "reps": 20,
+    "base": "lgbm",
+    "cost": 0.02,
+    "estimators": [
+      "causal_forest",
+      "x_learner",
+      "dr_learner"
+    ],
+    "base_seed": 20260830
+  },
+  "workers": 8,
+  "started": "2026-10-23T13:37:46.531137+00:00",
+  "finished": "2026-10-23T13:41:40.512275+00:00",
+  "cells_skipped_as_already_done": [],
+  "python": "3.12.13",
+  "platform": "Windows-11-10.0.26200-SP0",
+  "packages": {
+    "numpy": "2.5.4",
+    "pandas": "3.1.0",
+    "scikit-learn": "1.9.1",
+    "lightgbm": "4.7.0",
+    "scipy": "1.18.1"
+  },
+  "git_commit": "7157116039e028371fe19d84ee32564a67c69ae1",
+  "git_tracked_changes": false
+}
