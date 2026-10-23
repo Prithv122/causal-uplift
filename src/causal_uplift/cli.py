@@ -48,6 +48,15 @@ def _build_parser() -> argparse.ArgumentParser:
     dl = sub.add_parser("download", help="fetch a real dataset (needs network)")
     dl.add_argument("dataset", choices=["criteo"])
     dl.add_argument("--dest", type=Path, default=Path("data/raw"))
+
+    cc = sub.add_parser("criteo-check", help="outcome-only sanity check on the Criteo data")
+    cc.add_argument(
+        "--path", type=Path, default=Path("data/raw/criteo-research-uplift-v2.1.csv.gz")
+    )
+    cc.add_argument("--n", type=int, default=1_000_000)
+    cc.add_argument("--splits", type=int, default=5)
+    cc.add_argument("--out", type=Path, default=Path("results/criteo"))
+    cc.add_argument("--base", choices=["lgbm", "logistic"], default="lgbm")
     return parser
 
 
@@ -125,12 +134,27 @@ def _cmd_download(args: argparse.Namespace) -> int:
     return 0
 
 
+def _cmd_criteo_check(args: argparse.Namespace) -> int:
+    if not args.path.exists():
+        print(f"data file not found: {args.path}; run `download criteo` first", file=sys.stderr)
+        return 2
+    if args.splits < 1 or args.n < 2:
+        print("--splits must be at least 1 and --n at least 2", file=sys.stderr)
+        return 2
+    from .realcheck import run_criteo_check, write_criteo_report
+
+    frame = run_criteo_check(args.path, n=args.n, splits=args.splits, base=args.base)
+    print(f"wrote {write_criteo_report(frame, args.out)}")
+    return 0
+
+
 _COMMANDS = {
     "simulate": _cmd_simulate,
     "run-grid": _cmd_run_grid,
     "report": _cmd_report,
     "did": _cmd_did,
     "download": _cmd_download,
+    "criteo-check": _cmd_criteo_check,
 }
 
 
