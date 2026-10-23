@@ -154,8 +154,8 @@ cd causal-uplift
 uv sync
 uv run pytest
 uv run causal-uplift simulate --n 2000 --seed 1
-uv run causal-uplift run-grid --smoke --out results-smoke
-uv run causal-uplift report --results results-smoke
+uv run causal-uplift run-grid --smoke --out smoke-results
+uv run causal-uplift report --results smoke-results
 ```
 
 Optional parts:

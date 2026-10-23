@@ -44,3 +44,6 @@ mlruns/
 Thumbs.db
 .vscode/
 .idea/
+
+# Smoke-run output (CI and README examples)
+smoke-results/
