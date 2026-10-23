@@ -1,0 +1,18 @@
+# Quick check used by CI and `run-grid --smoke`; mirrors SMOKE_CONFIG in experiments.py.
+reps = 3
+base = "logistic"
+cost = 0.02
+base_seed = 20260830
+estimators = ["naive", "response", "s_learner", "t_learner", "x_learner", "dr_learner", "ipw"]
+
+[[cells]]
+gamma = 0.0
+hidden = 0.0
+n = 2000
+n_eval = 2000
+
+[[cells]]
+gamma = 1.0
+hidden = 0.0
+n = 2000
+n_eval = 2000
