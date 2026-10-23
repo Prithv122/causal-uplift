@@ -1,0 +1,46 @@
+[project]
+name = "causal-uplift"
+version = "0.1.0"
+description = "How far do uplift estimators fall from a known true treatment effect as confounding rises?"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "lightgbm>=4.7.0",
+    "numpy>=2.5.4",
+    "pandas>=3.1.0",
+    "scikit-learn>=1.9.1",
+    "scipy>=1.18.1",
+]
+
+# Console entry points need a real build backend: a uv virtual project
+# ([tool.uv] package = false) installs nothing, so the documented command fails
+# with "No module named ..." even while tests pass (pytest's pythonpath hides it).
+[project.scripts]
+causal-uplift = "causal_uplift.cli:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+# Keep this path and the [project.scripts] target above in step when renaming the package.
+[tool.hatch.build.targets.wheel]
+packages = ["src/causal_uplift"]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.3",
+    "pytest-cov>=6.0",
+    "ruff>=0.9",
+]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]
+addopts = "-q"
+
+[tool.ruff]
+line-length = 100
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM", "RUF"]
